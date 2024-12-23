@@ -33,7 +33,7 @@ var (
 	err      error
 )
 
-func init() {
+func initBot() {
 	CmdsList, err = LoadCmdsFromTOML("./resources/commands")
 	if err != nil {
 		fmt.Println("Error loading commands:", err)

@@ -10,7 +10,7 @@ import (
 var Pool *pgxpool.Pool
 var DbConn string
 
-func Initialize(databaseUrl string) {
+func InitPGX(databaseUrl string) {
 	ctx := context.Background()
 	var err error
 	Pool, err = pgxpool.New(ctx, databaseUrl)
@@ -19,10 +19,11 @@ func Initialize(databaseUrl string) {
 	}
 }
 
-func Close() {
+func EndPGX() {
 	Pool.Close()
 }
 
+// variable input with variable output
 func RunQuery(file string, args ...interface{}) [][]interface{} {
 	query := ReadQueryFromFile(file)
 	fmt.Printf("args: %v\n", args...)
