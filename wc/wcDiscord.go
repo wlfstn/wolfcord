@@ -7,7 +7,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-func DiscordDeferMsg(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func DgoDeferMsg(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource, // Deferring response
 	})
@@ -18,7 +18,7 @@ func DiscordDeferMsg(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	log.Println("Interaction deferred successfully, starting processing...")
 }
 
-func DiscordEmbedMsg(t string, v string, s *discordgo.Session, i *discordgo.InteractionCreate) {
+func DgoEmbedMsg(t string, v string, s *discordgo.Session, i *discordgo.InteractionCreate) {
 	embed := &discordgo.MessageEmbed{
 		Title: t,
 		Color: 0x5797a3,

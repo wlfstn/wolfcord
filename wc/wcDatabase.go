@@ -25,7 +25,7 @@ func EndPGX() {
 
 // variable input with variable output
 func RunQuery(file string, args ...interface{}) [][]interface{} {
-	query := ReadQueryFromFile(file)
+	query := ResourceLoadSQL(file)
 	fmt.Printf("args: %v\n", args...)
 
 	var results [][]interface{} = make([][]interface{}, 0)
