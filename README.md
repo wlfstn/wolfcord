@@ -7,6 +7,19 @@ Framework built on top of toml, discordgo, &amp; pgx5.
 -- "./resources/channels_wl.toml"
 -- "config.toml"
 
+## TOML config template
+```toml
+KeyLoc = '/var/.tokens/potatobot'
+ServerID = '981337133713379898' #potato server
+
+[Database]
+host = 'potatodomain.dog'
+port = 5432
+user = 'hellopeski'
+password = '/var/.tokens/potatoPostgres'
+dbname = 'potato'
+```
+
 ## TOML Cmds examples
 ```toml
 name = 'dj_logo'
