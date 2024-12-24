@@ -2,10 +2,7 @@
 Framework built on top of toml, discordgo, &amp; pgx5.
 
 ## TOML Configs
-- Whitelist
--- "./resources/user_wl.toml"
--- "./resources/channels_wl.toml"
--- "config.toml"
+- "config.toml"
 
 ## TOML config template
 ```toml
@@ -18,6 +15,14 @@ port = 5432
 user = 'hellopeski'
 password = '/var/.tokens/potatoPostgres'
 dbname = 'potato'
+
+[[Whitelist]]
+id = '110098133712340001'
+name = 'Sawyer'
+
+[[Whitelist]]
+id = '110098133712340002'
+name = 'Gavin'
 ```
 
 ## TOML Cmds examples
