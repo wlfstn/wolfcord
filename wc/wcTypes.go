@@ -1,5 +1,20 @@
 package wc
 
+type DatabaseConfig struct {
+	Host     string
+	Port     int
+	User     string
+	Password string
+	DBName   string
+}
+
+type Config struct {
+	BotName  string
+	KeyLoc   string
+	ServerID string
+	Database DatabaseConfig
+}
+
 type Command struct {
 	Name        string          `toml:"name"`
 	Description string          `toml:"description"`
@@ -13,21 +28,6 @@ type CommandOption struct {
 	Required     bool            `toml:"required"`
 	Autocomplete bool            `toml:"autocomplete"`
 	Options      []CommandOption `toml:"options"`
-}
-
-type DatabaseConfig struct {
-	Host     string
-	Port     int
-	User     string
-	Password string
-	DBName   string
-}
-
-type Config struct {
-	KeyLoc    string
-	ServerID  string
-	ChannelID string
-	Database  DatabaseConfig
 }
 
 type AuthUserData struct {

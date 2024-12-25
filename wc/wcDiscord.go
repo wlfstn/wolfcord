@@ -7,6 +7,39 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
+var CommandHandlers = make(map[string]CommandHandler)
+
+type CommandHandler func(s *discordgo.Session, i *discordgo.InteractionCreate)
+
+func RegisterHandlers(handlers map[string]CommandHandler) {
+	for name, handler := range handlers {
+		CommandHandlers[name] = handler
+	}
+}
+
+func botHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	fmt.Printf("Interaction received: Type: %v | ID: %v | User: %v#%v | Guild: %v\n",
+		i.Type,
+		i.ID,
+		i.Member.User.Username,
+		i.Member.User.Discriminator,
+		i.GuildID,
+	)
+	if i.Type == discordgo.InteractionApplicationCommand {
+		commandName := i.ApplicationCommandData().Name
+		if handler, exists := CommandHandlers[commandName]; exists {
+			handler(s, i)
+		} else {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "Unknown command.",
+				},
+			})
+		}
+	}
+}
+
 func DgoDeferMsg(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource, // Deferring response
