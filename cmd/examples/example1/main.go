@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 
 	"github.com/bwmarrin/discordgo"
@@ -8,13 +9,14 @@ import (
 )
 
 func main() {
-	configLoc := "./resources/config.toml"
-	commandsDir := "./resources/commands"
+	configPath := flag.String("config", "./resources/config.toml", "Path to the configuration file")
+	commandsDir := flag.String("commands", "resources/commands", "Path to the commands directory")
+	flag.Parse() // Parse the command-line flags
 
 	wc.RegisterHandlers(map[string]wc.CommandHandler{
 		"ping": handlePing,
 	})
-	wc.InitializeBot(configLoc, commandsDir)
+	wc.InitializeBot(*configPath, *commandsDir)
 }
 
 func handlePing(s *discordgo.Session, i *discordgo.InteractionCreate) {
