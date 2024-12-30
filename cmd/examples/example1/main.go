@@ -4,30 +4,28 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/bwmarrin/discordgo"
 	"github.com/wlfstn/wolfcord/wc"
 )
 
 func main() {
 	configPath := flag.String("config", "./resources/config.toml", "Path to the configuration file")
 	commandsDir := flag.String("commands", "resources/commands", "Path to the commands directory")
-	flag.Parse() // Parse the command-line flags
+	flag.Parse()
 
-	wc.RegisterHandlers(map[string]wc.CommandHandler{
+	wc.RegisterHandlers(map[string]func(ctx *wc.BotContext){
 		"ping": handlePing,
 	})
 	wc.InitializeBot(*configPath, *commandsDir)
 }
 
-func handlePing(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func handlePing(ctx *wc.BotContext) {
 	fmt.Println("Running Ping")
-	userName := i.Member.User.Username
+	userName := ctx.Interaction.Member.User.Username
 
-	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{
-			Content: fmt.Sprintf("Pong! %s\n", userName),
-			Flags:   discordgo.MessageFlagsEphemeral,
-		},
-	})
+	title := "You Pinged?"
+	value := fmt.Sprintf("Well Pong! Hello, %s!", userName)
+	footer := "Powered by WolfCord Framework"
+	ephemeral := true
+
+	ctx.DgoEmbedMsg(title, value, footer, ephemeral)
 }
