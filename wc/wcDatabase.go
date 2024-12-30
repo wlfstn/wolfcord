@@ -3,6 +3,8 @@ package wc
 import (
 	"context"
 	"fmt"
+	"io"
+	"os"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -10,7 +12,7 @@ import (
 var Pool *pgxpool.Pool
 var DbConn string
 
-func InitPGX(databaseUrl string) {
+func initDatabase(databaseUrl string) {
 	ctx := context.Background()
 	var err error
 	Pool, err = pgxpool.New(ctx, databaseUrl)
@@ -60,4 +62,20 @@ func RunQuery(file string, args ...interface{}) [][]interface{} {
 	}
 
 	return results
+}
+
+func ResourceLoadSQL(filePath string) string {
+	file, err := os.Open(filePath)
+	if err != nil {
+		fmt.Println("Error reading file:", err)
+		return ""
+	}
+	defer file.Close()
+
+	query, err := io.ReadAll(file)
+	if err != nil {
+		fmt.Println("Error reading file:", err)
+		return ""
+	}
+	return string(query)
 }

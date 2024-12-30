@@ -2,10 +2,12 @@ package wc
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 
 	"github.com/BurntSushi/toml"
@@ -20,22 +22,22 @@ var (
 )
 
 // example dirPath "./resources/commmands"
-func InitializeBot(tomlConfigs []string) {
-	collectAuthUsers(&AuthUsers, tomlConfigs[1])
+// example "config.toml"
+func InitializeBot(configFile string, commandsDir string) {
 
-	_, err := toml.DecodeFile("config.toml", &conf)
+	_, err := toml.DecodeFile(configFile, &conf)
 	if err != nil {
 		fmt.Println("Error:", err)
 		os.Exit(1)
 	}
-	fmt.Printf("Server ID: %s\nChannel ID: %s\n", conf.ServerID, conf.ChannelID)
+	fmt.Printf("Server ID: %s\n", conf.ServerID)
 
 	postgresPass := ResourceLoadFile(conf.Database.Password)
 
 	DbConn = fmt.Sprintf("postgres://%s:%s@%s:%d/%s",
 		conf.Database.User, postgresPass, conf.Database.Host, conf.Database.Port, conf.Database.DBName)
 
-	InitPGX(DbConn)
+	initDatabase(DbConn)
 
 	discordToken := ResourceLoadFile(conf.KeyLoc)
 
@@ -45,12 +47,23 @@ func InitializeBot(tomlConfigs []string) {
 		return
 	}
 
-	CmdsList, err = resourceLoadCommandFiles(tomlConfigs[2])
+	dg.AddHandler(botHandler)
+
+	err = dg.Open()
+	if err != nil {
+		fmt.Println("error opening connection,", err)
+		return
+	}
+
+	log.Println("discordgo bot session created.")
+
+	CmdsList, err = resourceLoadCommandFiles(commandsDir)
 	if err != nil {
 		fmt.Println("Error loading commands:", err)
 	}
 
 	verifySlashCommands(dg)
+
 	fmt.Println("Bot is starting up!")
 
 	sc := make(chan os.Signal, 1)
@@ -74,6 +87,63 @@ func collectAuthUsers(wlMap *map[string]string, file string) {
 		(*wlMap)[entity.ID] = entity.Name
 	}
 	fmt.Printf("Whitelist: %v\n", (*wlMap))
+}
+
+func verifySlashCommands(dg *discordgo.Session) {
+	// Create a map of existing commands presently stored in Discord
+	log.Printf("\n\nVerifying commands...\nconf.ServerID:  %s", conf.ServerID)
+
+	if CmdsList == nil || len(CmdsList) == 0 {
+		log.Println("No new commands to verify")
+		return
+	} else {
+		log.Printf("Commands to verify %v", len(CmdsList))
+	}
+
+	mapExistingCommands := make(map[string]*discordgo.ApplicationCommand)
+	existingCmds, err := dg.ApplicationCommands(dg.State.User.ID, conf.ServerID)
+	if err != nil {
+		log.Println("Error retrieving commands: ", err)
+		existingCmds = []*discordgo.ApplicationCommand{}
+	} else {
+		log.Printf("Command retrieved %v", len(existingCmds))
+	}
+
+	for _, cmd := range existingCmds {
+		mapExistingCommands[cmd.Name] = cmd
+	}
+
+	mapNewCommands := make(map[string]*discordgo.ApplicationCommand)
+	for _, cmd := range CmdsList {
+		mapNewCommands[cmd.Name] = cmd
+	}
+
+	diff := MapUpdateCompare(mapNewCommands, mapExistingCommands)
+	for cmdName, cmdStatus := range diff {
+		switch cmdStatus {
+		case Added:
+			log.Printf("Command %s does not exist, creating...\n", cmdName)
+			_, err := dg.ApplicationCommandCreate(dg.State.User.ID, conf.ServerID, mapNewCommands[cmdName])
+			if err != nil {
+				log.Println("Error creating command: ", err)
+			}
+		case Removed:
+			log.Printf("Command %s no longer exists, removing...\n", cmdName)
+			err := dg.ApplicationCommandDelete(dg.State.User.ID, conf.ServerID, mapExistingCommands[cmdName].ID)
+			if err != nil {
+				log.Println("Error deleting command: ", err)
+			}
+		case Updated:
+			log.Printf("Command %s has changed, updating...\n", cmdName)
+			_, err := dg.ApplicationCommandEdit(dg.State.User.ID, conf.ServerID, mapExistingCommands[cmdName].ID, mapNewCommands[cmdName])
+			if err != nil {
+				log.Println("Error updating command: ", err)
+
+			}
+		case Equal:
+			log.Printf("Command %s is up to date.\n", cmdName)
+		}
+	}
 }
 
 func resourceLoadCommandFiles(dir string) ([]*discordgo.ApplicationCommand, error) {
@@ -128,49 +198,19 @@ func resourceLoadCommandFiles(dir string) ([]*discordgo.ApplicationCommand, erro
 	return cmds, nil
 }
 
-func verifySlashCommands(dg *discordgo.Session) {
-	// Create a map of existing commands presently stored in Discord
-	log.Println("Verifying commands...")
-
-	mapExistingCommands := make(map[string]*discordgo.ApplicationCommand)
-	existingCmds, err := dg.ApplicationCommands(dg.State.User.ID, conf.ServerID)
+func ResourceLoadFile(filePath string) string {
+	fmt.Printf("Reading file %s\n", filePath)
+	file, err := os.Open(filePath)
 	if err != nil {
-		log.Println("Error retrieving commands: ", err)
+		fmt.Printf("file error: %v", err)
+	}
+	defer file.Close()
+
+	content, err := io.ReadAll(file)
+	if err != nil {
+		fmt.Printf("read error: %v", err)
 	}
 
-	for _, cmd := range existingCmds {
-		mapExistingCommands[cmd.Name] = cmd
-	}
-
-	mapNewCommands := make(map[string]*discordgo.ApplicationCommand)
-	for _, cmd := range CmdsList {
-		mapNewCommands[cmd.Name] = cmd
-	}
-
-	diff := MapUpdateCompare(mapNewCommands, mapExistingCommands)
-	for cmdName, cmdStatus := range diff {
-		switch cmdStatus {
-		case Added:
-			log.Printf("Command %s does not exist, creating...\n", cmdName)
-			_, err := dg.ApplicationCommandCreate(dg.State.User.ID, conf.ServerID, mapNewCommands[cmdName])
-			if err != nil {
-				log.Println("Error creating command: ", err)
-			}
-		case Removed:
-			log.Printf("Command %s no longer exists, removing...\n", cmdName)
-			err := dg.ApplicationCommandDelete(dg.State.User.ID, conf.ServerID, mapExistingCommands[cmdName].ID)
-			if err != nil {
-				log.Println("Error deleting command: ", err)
-			}
-		case Updated:
-			log.Printf("Command %s has changed, updating...\n", cmdName)
-			_, err := dg.ApplicationCommandEdit(dg.State.User.ID, conf.ServerID, mapExistingCommands[cmdName].ID, mapNewCommands[cmdName])
-			if err != nil {
-				log.Println("Error updating command: ", err)
-
-			}
-		case Equal:
-			log.Printf("Command %s is up to date.\n", cmdName)
-		}
-	}
+	output := strings.TrimSpace(string(content))
+	return output
 }

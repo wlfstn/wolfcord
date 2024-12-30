@@ -6,6 +6,8 @@ Framework built on top of toml, discordgo, &amp; pgx5.
 
 ## TOML config template
 ```toml
+BotName = 'wolfcord test'
+
 KeyLoc = '/var/.tokens/potatobot'
 ServerID = '981337133713379898' #potato server
 
