@@ -1,2 +1,2 @@
 # wolfcord gitignore
-/example_test/resources/config.toml
+**/config.toml
